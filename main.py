@@ -54,3 +54,22 @@ def eliminar_libro(id: int):
         status_code=404,
         detail="Libro no encontrado"
     )
+
+
+@app.put("/libros/{id}")
+def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
+
+    for indice, libro in enumerate(libros):
+        if libro["id"] == id:
+
+            libros[indice] = {
+                "id": id,
+                **libro_actualizado.model_dump()
+            }
+
+            return libros[indice]
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
