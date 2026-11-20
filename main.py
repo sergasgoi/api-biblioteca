@@ -42,3 +42,15 @@ def obtener_libro(id: int):
         status_code=404,
         detail="Libro no encontrado"
     )
+
+@app.delete("/libros/{id}", status_code=204)
+def eliminar_libro(id: int):
+    for libro in libros:
+        if libro["id"] == id:
+            libros.remove(libro)
+            return
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
