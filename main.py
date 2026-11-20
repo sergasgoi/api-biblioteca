@@ -30,5 +30,3 @@ def crear_libro(libro: LibroEntrada):
     libros.append(nuevo_libro)
     siguiente_id += 1
     return nuevo_libro
-
-
