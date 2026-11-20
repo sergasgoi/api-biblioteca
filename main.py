@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 app = FastAPI()
@@ -30,3 +30,15 @@ def crear_libro(libro: LibroEntrada):
     libros.append(nuevo_libro)
     siguiente_id += 1
     return nuevo_libro
+
+@app.get("/libros/{id}")
+def obtener_libro(id: int):
+
+    for libro in libros:
+        if libro["id"] == id:
+            return libro
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
