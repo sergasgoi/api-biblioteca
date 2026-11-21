@@ -1,10 +1,44 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from pathlib import Path
+import json
+
+RUTA_ARCHIVO = Path(__file__).parent / "datos" / "libros.json"
 
 app = FastAPI()
 
 libros = []
 siguiente_id = 1
+
+
+def guardar_libros():
+    RUTA_ARCHIVO.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(RUTA_ARCHIVO, "w", encoding="utf-8") as archivo:
+        json.dump(libros, archivo, ensure_ascii=False, indent=4)
+
+
+def cargar_libros():
+    global libros, siguiente_id
+
+    try:
+        with open(RUTA_ARCHIVO, "r", encoding="utf-8") as archivo:
+            libros = json.load(archivo)
+
+        if not isinstance(libros, list):
+            libros = []
+
+        siguiente_id = max(
+            (libro["id"] for libro in libros),
+            default=0
+        ) + 1
+
+    except (FileNotFoundError, json.JSONDecodeError, ValueError, TypeError, KeyError):
+        libros = []
+        siguiente_id = 1
+
+
+cargar_libros()
 
 
 class LibroEntrada(BaseModel):
@@ -33,7 +67,7 @@ def listar_libros(
     desde: int = 0,
     limite: int = 100    
 ):
-    resultado = libros.copy()
+    resultado = sorted(libros, key=lambda libro: libro["id"])
 
     if autor is not None:
         resultado = [
@@ -71,6 +105,7 @@ def crear_libro(libro: LibroEntrada):
 
     libros.append(nuevo_libro)
     siguiente_id += 1
+    guardar_libros()
 
     return nuevo_libro
 
@@ -93,6 +128,9 @@ def eliminar_libro(id: int):
     for libro in libros:
         if libro["id"] == id:
             libros.remove(libro)
+
+            guardar_libros()
+
             return
 
     raise HTTPException(
@@ -111,6 +149,8 @@ def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
                 "id": id,
                 **libro_actualizado.model_dump()
             }
+
+            guardar_libros()
 
             return libros[indice]
 
@@ -136,6 +176,9 @@ def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
                     )
 
             libro.update(datos_actualizados)
+
+            guardar_libros()
+
             return libro
 
     raise HTTPException(
