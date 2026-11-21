@@ -14,6 +14,13 @@ class LibroEntrada(BaseModel):
     disponible: bool = True
 
 
+class LibroActualizar(BaseModel):
+    titulo: str | None = Field(default=None,min_length=3,max_length=100)
+    autor: str | None = Field(default=None,min_length=3,max_length=60)
+    anio: int | None = Field( default=None,ge=1000,le=2100)
+    disponible: bool | None = None
+
+
 @app.get("/")
 def inicio():
     return {"mensaje": "API de la biblioteca"}
@@ -100,3 +107,25 @@ def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
     )
 
 
+@app.patch("/libros/{id}")
+def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
+
+    for libro in libros:
+        if libro["id"] == id:
+
+            datos_actualizados = cambios.model_dump(exclude_unset=True)
+
+            for campo, valor in datos_actualizados.items():
+                if valor is None:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"El campo {campo} no puede ser null"
+                    )
+
+            libro.update(datos_actualizados)
+            return libro
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
