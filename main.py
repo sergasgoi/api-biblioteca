@@ -53,12 +53,25 @@ def listar_libros(
 @app.post("/libros", status_code=201)
 def crear_libro(libro: LibroEntrada):
     global siguiente_id
+
+    for libro_existente in libros:
+        if (
+            libro_existente["titulo"].lower() == libro.titulo.lower()
+            and libro_existente["autor"].lower() == libro.autor.lower()
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe un libro con ese titulo y autor"
+            )
+
     nuevo_libro = {
         "id": siguiente_id,
         **libro.model_dump()
     }
+
     libros.append(nuevo_libro)
     siguiente_id += 1
+
     return nuevo_libro
 
 
