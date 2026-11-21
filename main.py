@@ -68,12 +68,12 @@ class LibroActualizar(BaseModel):
     disponible: bool | None = None
 
 
-@app.get("/")
+@app.get("/", summary="Mostrar Mensaje de Bienvenida")
 def inicio():
     return {"mensaje": "API de la biblioteca"}
 
 
-@app.post("/libros", status_code=201)
+@app.post("/libros", status_code=201, summary="Registrar un Nuevo Libro")
 def crear_libro(libro: LibroEntrada):
     global siguiente_id
 
@@ -101,7 +101,7 @@ def crear_libro(libro: LibroEntrada):
     return nuevo_libro
 
 
-@app.get("/libros")
+@app.get("/libros", summary="Listar Libros con Filtros y Paginación")
 def listar_libros(
     autor: str | None = None,
     disponible: bool | None = None,
@@ -125,7 +125,7 @@ def listar_libros(
     return resultado[desde:desde + limite]
 
 
-@app.get("/libros/buscar")
+@app.get("/libros/buscar", summary="Buscar Libros por Título o Autor")
 def buscar_libros(texto: str):
 
     resultado = []
@@ -140,7 +140,7 @@ def buscar_libros(texto: str):
     return resultado
 
 
-@app.get("/libros/estadisticas")
+@app.get("/libros/estadisticas", summary="Consultar Estadísticas de la Biblioteca")
 def obtener_estadisticas():
 
     total = len(libros)
@@ -160,7 +160,7 @@ def obtener_estadisticas():
     }
 
 
-@app.get("/libros/{id}")
+@app.get("/libros/{id}", summary="Consultar un Libro por su ID")
 def obtener_libro(id: int):
 
     for libro in libros:
@@ -175,7 +175,7 @@ def obtener_libro(id: int):
     )
 
 
-@app.delete("/libros/{id}", status_code=204)
+@app.delete("/libros/{id}", status_code=204, summary="Eliminar un Libro")
 def eliminar_libro(id: int):
     for libro in libros:
         if libro["id"] == id:
@@ -191,7 +191,7 @@ def eliminar_libro(id: int):
     )
 
 
-@app.put("/libros/{id}")
+@app.put("/libros/{id}", summary="Actualizar Completamente un Libro")
 def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
 
     for indice, libro in enumerate(libros):
@@ -212,7 +212,7 @@ def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
     )
 
 
-@app.patch("/libros/{id}")
+@app.patch("/libros/{id}", summary="Actualizar Parcialmente un Libro")
 def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
 
     for libro in libros:
@@ -239,7 +239,7 @@ def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
     )
 
 
-@app.post("/libros/{id}/prestar")
+@app.post("/libros/{id}/prestar", summary="Prestar un Libro Disponible")
 def prestar_libro(id: int):
 
     for libro in libros:
@@ -262,7 +262,7 @@ def prestar_libro(id: int):
     )
 
 
-@app.post("/libros/{id}/devolver")
+@app.post("/libros/{id}/devolver", summary="Devolver un Libro Prestado")
 def devolver_libro(id: int):
 
     for libro in libros:
