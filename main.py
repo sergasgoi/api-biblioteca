@@ -2,10 +2,22 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 from pathlib import Path
 import json
+import logging
 
 RUTA_ARCHIVO = Path(__file__).parent / "datos" / "libros.json"
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    filename="api.log",
+    encoding="utf-8"
+)
+
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
+
+logger.info("API de biblioteca iniciada")
 
 libros = []
 siguiente_id = 1
@@ -83,6 +95,8 @@ def crear_libro(libro: LibroEntrada):
     siguiente_id += 1
     guardar_libros()
 
+    logger.info(f"Libro {nuevo_libro['id']} creado")
+
     return nuevo_libro
 
 
@@ -151,6 +165,8 @@ def obtener_libro(id: int):
     for libro in libros:
         if libro["id"] == id:
             return libro
+
+    logger.warning(f"Libro {id} no encontrado")
 
     raise HTTPException(
         status_code=404,
