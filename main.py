@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 from pathlib import Path
 import json
@@ -90,8 +90,8 @@ def crear_libro(libro: LibroEntrada):
 def listar_libros(
     autor: str | None = None,
     disponible: bool | None = None,
-    desde: int = 0,
-    limite: int = 100    
+    desde: int = Query(default=0, ge=0),
+    limite: int = Query(default=100, ge=1)   
 ):
     resultado = sorted(libros, key=lambda libro: libro["id"])
 
@@ -123,6 +123,26 @@ def buscar_libros(texto: str):
             resultado.append(libro)
 
     return resultado
+
+
+@app.get("/libros/estadisticas")
+def obtener_estadisticas():
+
+    total = len(libros)
+    disponibles = 0
+    prestados = 0
+
+    for libro in libros:
+        if libro["disponible"]:
+            disponibles += 1
+        else:
+            prestados += 1
+
+    return {
+        "total": total,
+        "disponibles": disponibles,
+        "prestados": prestados
+    }
 
 
 @app.get("/libros/{id}")
