@@ -200,3 +200,49 @@ def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
         status_code=404,
         detail="Libro no encontrado"
     )
+
+
+@app.post("/libros/{id}/prestar")
+def prestar_libro(id: int):
+
+    for libro in libros:
+        if libro["id"] == id:
+
+            if not libro["disponible"]:
+                raise HTTPException(
+                    status_code=409,
+                    detail="El libro ya está prestado"
+                )
+
+            libro["disponible"] = False
+            guardar_libros()
+
+            return libro
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
+
+
+@app.post("/libros/{id}/devolver")
+def devolver_libro(id: int):
+
+    for libro in libros:
+        if libro["id"] == id:
+
+            if libro["disponible"]:
+                raise HTTPException(
+                    status_code=409,
+                    detail="El libro ya está disponible"
+                )
+
+            libro["disponible"] = True
+            guardar_libros()
+
+            return libro
+
+    raise HTTPException(
+        status_code=404,
+        detail="Libro no encontrado"
+    )
