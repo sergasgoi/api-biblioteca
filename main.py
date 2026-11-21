@@ -60,30 +60,6 @@ def inicio():
     return {"mensaje": "API de la biblioteca"}
 
 
-@app.get("/libros")
-def listar_libros(
-    autor: str | None = None,
-    disponible: bool | None = None,
-    desde: int = 0,
-    limite: int = 100    
-):
-    resultado = sorted(libros, key=lambda libro: libro["id"])
-
-    if autor is not None:
-        resultado = [
-            libro for libro in resultado
-            if libro["autor"].lower() == autor.lower()
-        ]
-
-    if disponible is not None:
-        resultado = [
-            libro for libro in resultado
-            if libro["disponible"] == disponible
-        ]
-
-    return resultado[desde:desde + limite]
-
-
 @app.post("/libros", status_code=201)
 def crear_libro(libro: LibroEntrada):
     global siguiente_id
@@ -108,6 +84,45 @@ def crear_libro(libro: LibroEntrada):
     guardar_libros()
 
     return nuevo_libro
+
+
+@app.get("/libros")
+def listar_libros(
+    autor: str | None = None,
+    disponible: bool | None = None,
+    desde: int = 0,
+    limite: int = 100    
+):
+    resultado = sorted(libros, key=lambda libro: libro["id"])
+
+    if autor is not None:
+        resultado = [
+            libro for libro in resultado
+            if libro["autor"].lower() == autor.lower()
+        ]
+
+    if disponible is not None:
+        resultado = [
+            libro for libro in resultado
+            if libro["disponible"] == disponible
+        ]
+
+    return resultado[desde:desde + limite]
+
+
+@app.get("/libros/buscar")
+def buscar_libros(texto: str):
+
+    resultado = []
+
+    for libro in libros:
+        if (
+            texto.lower() in libro["titulo"].lower()
+            or texto.lower() in libro["autor"].lower()
+        ):
+            resultado.append(libro)
+
+    return resultado
 
 
 @app.get("/libros/{id}")
