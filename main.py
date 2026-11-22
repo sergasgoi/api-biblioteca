@@ -1,11 +1,9 @@
-import json
 import logging
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
 
-RUTA_ARCHIVO = Path(__file__).parent / "datos" / "libros.json"
+import datos
+from schemas import LibroActualizar, LibroEntrada
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,54 +18,6 @@ app = FastAPI()
 
 logger.info("API de biblioteca iniciada")
 
-libros = []
-siguiente_id = 1
-
-
-def guardar_libros():
-    RUTA_ARCHIVO.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(RUTA_ARCHIVO, "w", encoding="utf-8") as archivo:
-        json.dump(libros, archivo, ensure_ascii=False, indent=4)
-
-
-def cargar_libros():
-    global libros, siguiente_id
-
-    try:
-        with open(RUTA_ARCHIVO, "r", encoding="utf-8") as archivo:
-            libros = json.load(archivo)
-
-        if not isinstance(libros, list):
-            libros = []
-
-        siguiente_id = max(
-            (libro["id"] for libro in libros),
-            default=0
-        ) + 1
-
-    except (FileNotFoundError, json.JSONDecodeError, ValueError, TypeError, KeyError):
-        libros = []
-        siguiente_id = 1
-
-
-cargar_libros()
-
-
-class LibroEntrada(BaseModel):
-    titulo: str = Field(min_length=3, max_length=100)
-    autor: str = Field(min_length=3, max_length=60)
-    anio: int = Field(ge=1000, le=2100)
-    disponible: bool = True
-
-
-class LibroActualizar(BaseModel):
-    titulo: str | None = Field(default=None,min_length=3,max_length=100)
-    autor: str | None = Field(default=None,min_length=3,max_length=60)
-    anio: int | None = Field( default=None,ge=1000,le=2100)
-    disponible: bool | None = None
-
-
 @app.get("/", summary="Mostrar Mensaje de Bienvenida")
 def inicio():
     return {"mensaje": "API de la biblioteca"}
@@ -77,7 +27,7 @@ def inicio():
 def crear_libro(libro: LibroEntrada):
     global siguiente_id
 
-    for libro_existente in libros:
+    for libro_existente in datos.libros:
         if (
             libro_existente["titulo"].lower() == libro.titulo.lower()
             and libro_existente["autor"].lower() == libro.autor.lower()
@@ -92,9 +42,9 @@ def crear_libro(libro: LibroEntrada):
         **libro.model_dump()
     }
 
-    libros.append(nuevo_libro)
+    datos.libros.append(nuevo_libro)
     siguiente_id += 1
-    guardar_libros()
+    datos.guardar_libros()
 
     logger.info(f"Libro {nuevo_libro['id']} creado")
 
@@ -108,7 +58,7 @@ def listar_libros(
     desde: int = Query(default=0, ge=0),
     limite: int = Query(default=100, ge=1)   
 ):
-    resultado = sorted(libros, key=lambda libro: libro["id"])
+    resultado = sorted(datos.libros, key=lambda libro: libro["id"])
 
     if autor is not None:
         resultado = [
@@ -130,7 +80,7 @@ def buscar_libros(texto: str):
 
     resultado = []
 
-    for libro in libros:
+    for libro in datos.libros:
         if (
             texto.lower() in libro["titulo"].lower()
             or texto.lower() in libro["autor"].lower()
@@ -143,11 +93,11 @@ def buscar_libros(texto: str):
 @app.get("/libros/estadisticas", summary="Consultar Estadísticas de la Biblioteca")
 def obtener_estadisticas():
 
-    total = len(libros)
+    total = len(datos.libros)
     disponibles = 0
     prestados = 0
 
-    for libro in libros:
+    for libro in datos.libros:
         if libro["disponible"]:
             disponibles += 1
         else:
@@ -163,7 +113,7 @@ def obtener_estadisticas():
 @app.get("/libros/{id}", summary="Consultar un Libro por su ID")
 def obtener_libro(id: int):
 
-    for libro in libros:
+    for libro in datos.libros:
         if libro["id"] == id:
             return libro
 
@@ -177,11 +127,11 @@ def obtener_libro(id: int):
 
 @app.delete("/libros/{id}", status_code=204, summary="Eliminar un Libro")
 def eliminar_libro(id: int):
-    for libro in libros:
+    for libro in datos.libros:
         if libro["id"] == id:
-            libros.remove(libro)
+            datos.libros.remove(libro)
 
-            guardar_libros()
+            datos.guardar_libros()
 
             return
 
@@ -194,17 +144,17 @@ def eliminar_libro(id: int):
 @app.put("/libros/{id}", summary="Actualizar Completamente un Libro")
 def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
 
-    for indice, libro in enumerate(libros):
+    for indice, libro in enumerate(datos.libros):
         if libro["id"] == id:
 
-            libros[indice] = {
+            datos.libros[indice] = {
                 "id": id,
                 **libro_actualizado.model_dump()
             }
 
-            guardar_libros()
+            datos.guardar_libros()
 
-            return libros[indice]
+            return datos.libros[indice]
 
     raise HTTPException(
         status_code=404,
@@ -215,7 +165,7 @@ def actualizar_libro(id: int, libro_actualizado: LibroEntrada):
 @app.patch("/libros/{id}", summary="Actualizar Parcialmente un Libro")
 def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
 
-    for libro in libros:
+    for libro in datos.libros:
         if libro["id"] == id:
 
             datos_actualizados = cambios.model_dump(exclude_unset=True)
@@ -229,7 +179,7 @@ def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
 
             libro.update(datos_actualizados)
 
-            guardar_libros()
+            datos.guardar_libros()
 
             return libro
 
@@ -242,7 +192,7 @@ def actualizar_libro_parcial(id: int, cambios: LibroActualizar):
 @app.post("/libros/{id}/prestar", summary="Prestar un Libro Disponible")
 def prestar_libro(id: int):
 
-    for libro in libros:
+    for libro in datos.libros:
         if libro["id"] == id:
 
             if not libro["disponible"]:
@@ -252,7 +202,7 @@ def prestar_libro(id: int):
                 )
 
             libro["disponible"] = False
-            guardar_libros()
+            datos.guardar_libros()
 
             return libro
 
@@ -265,7 +215,7 @@ def prestar_libro(id: int):
 @app.post("/libros/{id}/devolver", summary="Devolver un Libro Prestado")
 def devolver_libro(id: int):
 
-    for libro in libros:
+    for libro in datos.libros:
         if libro["id"] == id:
 
             if libro["disponible"]:
@@ -275,7 +225,7 @@ def devolver_libro(id: int):
                 )
 
             libro["disponible"] = True
-            guardar_libros()
+            datos.guardar_libros()
 
             return libro
 
